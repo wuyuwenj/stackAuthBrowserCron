@@ -15,18 +15,28 @@ jobs:
     steps:
       - name: Call API to run due tasks
         run: |
-          response=$(curl -L -s -w "\n%{http_code}" -X GET "https://${{ secrets.VERCEL_URL }}/api/run-due-tasks" \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}")
-
-          http_code=$(echo "$response" | tail -n1)
-          body=$(echo "$response" | sed '$d')
-
-          echo "HTTP Status: $http_code"
-          echo "Response: $body"
-
-          if [ "$http_code" -ne 200 ]; then
-            echo "Error: API call failed with status $http_code"
+          # Check if VERCEL_URL is set
+          if [ -z "${{ secrets.VERCEL_URL }}" ]; then
+            echo "Error: VERCEL_URL secret is not set"
             exit 1
           fi
 
-          echo "✅ Successfully triggered task execution"
+          echo "Calling API: https://${{ secrets.VERCEL_URL }}/api/run-due-tasks"
+
+          # Make API call with better error handling
+          http_code=$(curl -L -s -o /tmp/response.json -w "%{http_code}" -X GET \
+            "https://${{ secrets.VERCEL_URL }}/api/run-due-tasks" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}")
+
+          echo "HTTP Status: $http_code"
+          echo "Response body:"
+          cat /tmp/response.json
+          echo ""
+
+          # Check if response is successful (200-299)
+          if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+            echo "✅ Successfully triggered task execution"
+          else
+            echo "❌ Error: API call failed with status $http_code"
+            exit 1
+          fi
