@@ -46,7 +46,7 @@ export async function runBrowserTask(
       id: task.id || "",
       status: "completed",
       result: result.output,
-      logs: result.logs || [],
+      logs: (result as any).logs || [],
     };
   } catch (error: any) {
     console.error("Browser Use task failed:", error);
@@ -66,13 +66,13 @@ export async function runBrowserTask(
 export async function getTaskStatus(taskId: string): Promise<BrowserTaskResult> {
   try {
     // Note: This may need adjustment based on SDK's actual API
-    const result = await client.tasks.getTask(taskId);
+    const result = await client.tasks.getTask({ task_id: taskId });
 
     return {
       id: taskId,
       status: result.status as any,
-      result: result.output,
-      logs: result.logs || [],
+      result: (result as any).output,
+      logs: (result as any).logs || [],
     };
   } catch (error: any) {
     return {

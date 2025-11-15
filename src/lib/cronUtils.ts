@@ -1,4 +1,4 @@
-import parser from "cron-parser";
+import CronParser from "cron-parser";
 
 /**
  * Check if a cron schedule is due to run now
@@ -13,7 +13,7 @@ export function isDueNow(
   withinMinutes: number = 5
 ): boolean {
   try {
-    const interval = parser.parseExpression(cronExpression, {
+    const interval = CronParser.parse(cronExpression, {
       currentDate: new Date(now.getTime() - withinMinutes * 60 * 1000),
     });
 
@@ -35,7 +35,7 @@ export function isDueNow(
  */
 export function getNextRunTime(cronExpression: string): Date | null {
   try {
-    const interval = parser.parseExpression(cronExpression);
+    const interval = CronParser.parse(cronExpression);
     return interval.next().toDate();
   } catch (error) {
     console.error("Invalid cron expression:", cronExpression, error);
@@ -50,7 +50,7 @@ export function getNextRunTime(cronExpression: string): Date | null {
  */
 export function isValidCron(cronExpression: string): boolean {
   try {
-    parser.parseExpression(cronExpression);
+    CronParser.parse(cronExpression);
     return true;
   } catch (error) {
     return false;
