@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { runBrowserTask } from "@/lib/browserUse";
-import { isDueNow } from "@/lib/cronUtils";
+import { getNextRunTime } from "@/lib/cronUtils";
 
 // POST /api/run-due-tasks - Run all tasks that are due now
 // This endpoint should be called by a cron job (e.g., Vercel Cron, external scheduler)
@@ -20,20 +20,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Get all active tasks with cron schedules
-    const tasks = await db.task.findMany({
+    const now = new Date();
+
+    // Get all active tasks that are due now (nextRunAt <= now)
+    const dueTasks = await db.task.findMany({
       where: {
         isActive: true,
-        cronSchedule: {
+        nextRunAt: {
           not: null,
+          lte: now,
         },
       },
     });
-
-    const now = new Date();
-    const dueTasks = tasks.filter((task) =>
-      task.cronSchedule && isDueNow(task.cronSchedule, now)
-    );
 
     // Process each due task
     const results = await Promise.allSettled(
@@ -62,6 +60,15 @@ export async function POST(request: NextRequest) {
               logs: result.logs?.join("\n") || null,
             },
           });
+
+          // Update task's nextRunAt to the next scheduled time
+          if (task.cronSchedule) {
+            const nextRunAt = getNextRunTime(task.cronSchedule);
+            await db.task.update({
+              where: { id: task.id },
+              data: { nextRunAt },
+            });
+          }
 
           return { taskId: task.id, taskRunId: taskRun.id, success: true };
         } catch (error: any) {
@@ -105,20 +112,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Get all active tasks with cron schedules
-    const tasks = await db.task.findMany({
+    const now = new Date();
+
+    // Get all active tasks that are due now (nextRunAt <= now)
+    const dueTasks = await db.task.findMany({
       where: {
         isActive: true,
-        cronSchedule: {
+        nextRunAt: {
           not: null,
+          lte: now,
         },
       },
     });
-
-    const now = new Date();
-    const dueTasks = tasks.filter((task) =>
-      task.cronSchedule && isDueNow(task.cronSchedule, now)
-    );
 
     // Process each due task
     const results = await Promise.allSettled(
@@ -147,6 +152,15 @@ export async function GET(request: NextRequest) {
               logs: result.logs?.join("\n") || null,
             },
           });
+
+          // Update task's nextRunAt to the next scheduled time
+          if (task.cronSchedule) {
+            const nextRunAt = getNextRunTime(task.cronSchedule);
+            await db.task.update({
+              where: { id: task.id },
+              data: { nextRunAt },
+            });
+          }
 
           return { taskId: task.id, taskRunId: taskRun.id, success: true };
         } catch (error: any) {

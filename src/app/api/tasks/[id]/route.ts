@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { z } from "zod";
-import { isValidCron } from "@/lib/cronUtils";
+import { isValidCron, getNextRunTime } from "@/lib/cronUtils";
 
 const updateTaskSchema = z.object({
   name: z.string().min(1).optional(),
@@ -60,9 +60,34 @@ export async function PUT(
       );
     }
 
+    // Get current task to check if cron or isActive changed
+    const currentTask = await db.task.findUnique({ where: { id } });
+    if (!currentTask) {
+      return NextResponse.json({ error: "Task not found" }, { status: 404 });
+    }
+
+    // Recalculate nextRunAt if cron schedule or isActive status changed
+    let nextRunAt: Date | null | undefined = undefined;
+    const cronChanged = validatedData.cronSchedule !== undefined &&
+                        validatedData.cronSchedule !== currentTask.cronSchedule;
+    const isActiveChanged = validatedData.isActive !== undefined &&
+                            validatedData.isActive !== currentTask.isActive;
+
+    if (cronChanged || isActiveChanged) {
+      const newCronSchedule = validatedData.cronSchedule ?? currentTask.cronSchedule;
+      const newIsActive = validatedData.isActive ?? currentTask.isActive;
+
+      nextRunAt = newCronSchedule && newIsActive
+        ? getNextRunTime(newCronSchedule)
+        : null;
+    }
+
     const task = await db.task.update({
       where: { id },
-      data: validatedData,
+      data: {
+        ...validatedData,
+        ...(nextRunAt !== undefined && { nextRunAt }),
+      },
     });
 
     return NextResponse.json({ task });

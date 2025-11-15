@@ -2,8 +2,8 @@ name: Run Scheduled Browser Tasks
 
 on:
   schedule:
-    # Runs every 10 minutes (GitHub Actions uses UTC time)
-    - cron: "*/10 * * * *"
+    # Runs every 5 minutes (GitHub Actions uses UTC time)
+    - cron: "*/5 * * * *"
 
   # Allow manual trigger from GitHub Actions tab
   workflow_dispatch:
@@ -15,7 +15,7 @@ jobs:
     steps:
       - name: Call API to run due tasks
         run: |
-          response=$(curl -s -w "\n%{http_code}" -X GET "${{ secrets.VERCEL_URL }}/api/run-due-tasks" \
+          response=$(curl -L -s -w "\n%{http_code}" -X GET "https://${{ secrets.VERCEL_URL }}/api/run-due-tasks" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}")
 
           http_code=$(echo "$response" | tail -n1)

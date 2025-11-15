@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { z } from "zod";
-import { isValidCron } from "@/lib/cronUtils";
+import { isValidCron, getNextRunTime } from "@/lib/cronUtils";
 
 const createTaskSchema = z.object({
   userId: z.string(),
@@ -21,9 +21,13 @@ export async function GET(request: NextRequest) {
     const tasks = await db.task.findMany({
       where: userId ? { userId } : undefined,
       include: {
+        _count: {
+          select: { runs: true },
+        },
         runs: {
+          select: { status: true },
           orderBy: { startedAt: "desc" },
-          take: 5, // Last 5 runs
+          take: 10,
         },
       },
       orderBy: { createdAt: "desc" },
@@ -52,8 +56,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Calculate nextRunAt if cron schedule is provided and task is active
+    const nextRunAt = validatedData.cronSchedule && validatedData.isActive
+      ? getNextRunTime(validatedData.cronSchedule)
+      : null;
+
     const task = await db.task.create({
-      data: validatedData,
+      data: {
+        ...validatedData,
+        nextRunAt,
+      },
     });
 
     return NextResponse.json({ task }, { status: 201 });

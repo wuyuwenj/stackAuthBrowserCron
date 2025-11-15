@@ -1,6 +1,10 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 export default function Home() {
+  // Redirect to dashboard
+  redirect("/dashboard");
+
   return (
     <div className="min-h-screen p-8">
       <main className="max-w-7xl mx-auto">
@@ -17,10 +21,10 @@ export default function Home() {
               Create New Task
             </Link>
             <Link
-              href="/tasks"
+              href="/dashboard"
               className="border border-gray-300 px-6 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition"
             >
-              View All Tasks
+              View Dashboard
             </Link>
           </div>
         </div>

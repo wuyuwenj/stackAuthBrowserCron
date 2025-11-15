@@ -30,12 +30,14 @@ model Task {
   description String
   targetSite  String
   cronSchedule String?
+  nextRunAt   DateTime?
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   runs        TaskRun[]
 
   @@index([userId])
+  @@index([nextRunAt])
 }
 
 model TaskRun {

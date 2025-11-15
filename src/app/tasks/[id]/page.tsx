@@ -2,6 +2,7 @@
 
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 interface TaskRun {
   id: string;
@@ -19,6 +20,7 @@ interface Task {
   description: string;
   targetSite: string;
   cronSchedule: string | null;
+  nextRunAt: string | null;
   isActive: boolean;
   createdAt: string;
   runs: TaskRun[];
@@ -30,15 +32,29 @@ export default function TaskDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const router = useRouter();
   const [task, setTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
+  const [activeTab, setActiveTab] = useState<"overview" | "runs" | "settings">("overview");
+  const [editForm, setEditForm] = useState({
+    name: "",
+    targetSite: "",
+    cronSchedule: "",
+    description: "",
+  });
 
   const fetchTask = () => {
     fetch(`/api/tasks/${id}`)
       .then((res) => res.json())
       .then((data) => {
         setTask(data.task);
+        setEditForm({
+          name: data.task.name,
+          targetSite: data.task.targetSite,
+          cronSchedule: data.task.cronSchedule || "",
+          description: data.task.description,
+        });
         setLoading(false);
       })
       .catch(() => {
@@ -61,7 +77,6 @@ export default function TaskDetailPage({
         throw new Error("Failed to run task");
       }
 
-      // Refresh task data to show new run
       setTimeout(fetchTask, 1000);
     } catch (error) {
       // Error handled silently
@@ -92,111 +107,329 @@ export default function TaskDetailPage({
     }
   };
 
+  const handleDelete = async () => {
+    if (!confirm("Are you sure you want to delete this task?")) return;
+
+    try {
+      const response = await fetch(`/api/tasks/${id}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        router.push("/dashboard");
+      }
+    } catch (error) {
+      // Error handled silently
+    }
+  };
+
+  const handleSaveSettings = async () => {
+    try {
+      const response = await fetch(`/api/tasks/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: editForm.name,
+          targetSite: editForm.targetSite,
+          cronSchedule: editForm.cronSchedule || null,
+          description: editForm.description,
+        }),
+      });
+
+      if (response.ok) {
+        fetchTask();
+      }
+    } catch (error) {
+      // Error handled silently
+    }
+  };
+
+  const getNextRunTime = () => {
+    if (!task?.nextRunAt || !task?.isActive) return "Not scheduled";
+    return new Date(task.nextRunAt).toLocaleString();
+  };
+
+  const getLastRunTime = () => {
+    if (!task?.runs || task.runs.length === 0) return "Never";
+    return new Date(task.runs[0].startedAt).toLocaleString();
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen p-8">
-        <div className="max-w-7xl mx-auto">
-          <p>Loading task...</p>
-        </div>
-      </div>
+      <main className="mx-auto max-w-7xl px-4 sm:px-6 py-6">
+        <p>Loading task...</p>
+      </main>
     );
   }
 
   if (!task) {
     return (
-      <div className="min-h-screen p-8">
-        <div className="max-w-7xl mx-auto">
-          <p>Task not found</p>
-          <Link href="/tasks" className="text-blue-600 hover:underline">
-            ← Back to Tasks
-          </Link>
-        </div>
-      </div>
+      <main className="mx-auto max-w-7xl px-4 sm:px-6 py-6">
+        <p>Task not found</p>
+        <Link href="/dashboard" className="text-indigo-600 hover:underline">
+          ← Back to Dashboard
+        </Link>
+      </main>
     );
   }
 
-  return (
-    <div className="min-h-screen p-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <Link href="/tasks" className="text-blue-600 hover:underline mb-4 inline-block">
-            ← Back to Tasks
-          </Link>
+  const latestRun = task.runs && task.runs.length > 0 ? task.runs[0] : null;
 
-          <div className="flex justify-between items-start mb-4">
-            <h1 className="text-4xl font-bold">{task.name}</h1>
-            <div className="flex gap-2">
-              <button
-                onClick={handleToggleActive}
-                className={`px-4 py-2 rounded-lg transition ${
+  return (
+    <main className="mx-auto max-w-7xl px-4 sm:px-6 py-6">
+      {/* Breadcrumb */}
+      <div className="mb-4">
+        <Link href="/dashboard" className="text-sm text-slate-600 hover:text-indigo-600">
+          ← Back to Dashboard
+        </Link>
+      </div>
+
+      {/* Header */}
+      <div className="mb-6">
+        <div className="flex items-start justify-between gap-4 mb-4">
+          <div className="flex items-center gap-3">
+            <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-semibold text-lg">
+              {task.name.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+                {task.name}
+              </h1>
+              <span
+                className={`inline-flex items-center gap-1.5 text-xs font-medium rounded-full px-2 py-0.5 ring-1 ${
                   task.isActive
-                    ? "bg-gray-200 hover:bg-gray-300"
-                    : "bg-green-600 text-white hover:bg-green-700"
+                    ? "text-green-700 bg-green-50 ring-green-200"
+                    : "text-slate-700 bg-slate-50 ring-slate-200"
                 }`}
               >
-                {task.isActive ? "Deactivate" : "Activate"}
-              </button>
-              <button
-                onClick={handleRunTask}
-                disabled={running}
-                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
-              >
-                {running ? "Running..." : "Run Now"}
-              </button>
+                <span
+                  className={`h-1.5 w-1.5 rounded-full ${
+                    task.isActive ? "bg-green-600" : "bg-slate-500"
+                  }`}
+                ></span>
+                {task.isActive ? "Active" : "Inactive"}
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleRunTask}
+              disabled={running}
+              className="inline-flex items-center gap-2 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-3.5 py-2 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-50"
+            >
+              {running ? "Running..." : "▶ Run Now"}
+            </button>
+            <button
+              onClick={handleToggleActive}
+              className="inline-flex items-center gap-2 rounded-md bg-white hover:bg-slate-50 text-slate-700 text-sm font-medium px-3.5 py-2 shadow-sm border border-slate-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+            >
+              {task.isActive ? "⏸ Deactivate" : "▶ Activate"}
+            </button>
+            <button
+              onClick={handleDelete}
+              className="inline-flex items-center gap-2 rounded-md bg-white hover:bg-red-50 text-red-600 text-sm font-medium px-3.5 py-2 shadow-sm border border-slate-300 hover:border-red-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+            >
+              🗑 Delete
+            </button>
+          </div>
+        </div>
+
+        {/* Metadata Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="rounded-lg bg-white border border-slate-200 shadow-sm p-4">
+            <p className="text-xs text-slate-600 mb-1">Cron Schedule</p>
+            <p className="text-sm font-medium text-slate-900">
+              {task.cronSchedule || "Manual"}
+            </p>
+          </div>
+          <div className="rounded-lg bg-white border border-slate-200 shadow-sm p-4">
+            <p className="text-xs text-slate-600 mb-1">Last Run</p>
+            <p className="text-sm font-medium text-slate-900">{getLastRunTime()}</p>
+          </div>
+          <div className="rounded-lg bg-white border border-slate-200 shadow-sm p-4">
+            <p className="text-xs text-slate-600 mb-1">Next Run</p>
+            <p className="text-sm font-medium text-slate-900">{getNextRunTime()}</p>
+          </div>
+          <div className="rounded-lg bg-white border border-slate-200 shadow-sm p-4">
+            <p className="text-xs text-slate-600 mb-1">Total Runs</p>
+            <p className="text-sm font-medium text-slate-900">{task.runs.length}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="border-b border-slate-200 mb-6">
+        <nav className="flex gap-6">
+          <button
+            onClick={() => setActiveTab("overview")}
+            className={`pb-3 text-sm font-medium border-b-2 transition ${
+              activeTab === "overview"
+                ? "border-indigo-600 text-indigo-600"
+                : "border-transparent text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            Overview
+          </button>
+          <button
+            onClick={() => setActiveTab("runs")}
+            className={`pb-3 text-sm font-medium border-b-2 transition ${
+              activeTab === "runs"
+                ? "border-indigo-600 text-indigo-600"
+                : "border-transparent text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            Runs
+          </button>
+          <button
+            onClick={() => setActiveTab("settings")}
+            className={`pb-3 text-sm font-medium border-b-2 transition ${
+              activeTab === "settings"
+                ? "border-indigo-600 text-indigo-600"
+                : "border-transparent text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            Settings
+          </button>
+        </nav>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === "overview" && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Latest Run */}
+          <div className="lg:col-span-2">
+            <div className="rounded-lg bg-white border border-slate-200 shadow-sm p-6">
+              <h2 className="text-lg font-semibold text-slate-900 mb-4">Latest Run</h2>
+              {latestRun ? (
+                <div>
+                  <div className="flex items-center gap-3 mb-4">
+                    <span
+                      className={`px-3 py-1 rounded-full text-sm font-medium inline-flex items-center gap-1.5 ${
+                        latestRun.status === "success"
+                          ? "bg-green-100 text-green-800"
+                          : latestRun.status === "failed"
+                          ? "bg-red-100 text-red-800"
+                          : "bg-blue-100 text-blue-800"
+                      }`}
+                    >
+                      {latestRun.status === "success" && "✓"}
+                      {latestRun.status === "failed" && "✗"}
+                      {latestRun.status === "running" && "⟳"}
+                      {latestRun.status.charAt(0).toUpperCase() + latestRun.status.slice(1)}
+                    </span>
+                    <span className="text-sm text-slate-600">
+                      {new Date(latestRun.startedAt).toLocaleString()}
+                    </span>
+                    {latestRun.finishedAt && (
+                      <span className="text-sm text-slate-600">
+                        Duration:{" "}
+                        {Math.round(
+                          (new Date(latestRun.finishedAt).getTime() -
+                            new Date(latestRun.startedAt).getTime()) /
+                            1000
+                        )}
+                        s
+                      </span>
+                    )}
+                  </div>
+
+                  {latestRun.errorMsg && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+                      <p className="text-sm font-semibold text-red-800">Error:</p>
+                      <p className="text-sm text-red-800">{latestRun.errorMsg}</p>
+                    </div>
+                  )}
+
+                  {latestRun.outputJson?.result && (
+                    <details className="mt-3">
+                      <summary className="cursor-pointer text-sm text-indigo-600 hover:text-indigo-700 font-medium">
+                        View Result ({Array.isArray(latestRun.outputJson.result) ? latestRun.outputJson.result.length : 1} items)
+                      </summary>
+                      <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 mt-2">
+                        {Array.isArray(latestRun.outputJson.result) ? (
+                          <ul className="space-y-2">
+                            {latestRun.outputJson.result.map((item: string, idx: number) => (
+                              <li key={idx} className="flex items-start gap-2">
+                                <span className="text-indigo-600 mt-1">•</span>
+                                <span className="text-slate-800 text-sm">{item}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="text-sm text-slate-800">{latestRun.outputJson.result}</p>
+                        )}
+                      </div>
+                    </details>
+                  )}
+
+                  {latestRun.logs && (
+                    <details className="mt-4">
+                      <summary className="cursor-pointer text-sm text-slate-600 hover:text-slate-900 font-medium">
+                        View Logs
+                      </summary>
+                      <pre className="bg-slate-900 text-slate-100 p-3 rounded-lg mt-2 text-xs overflow-x-auto">
+                        {latestRun.logs}
+                      </pre>
+                    </details>
+                  )}
+                </div>
+              ) : (
+                <p className="text-slate-600 text-sm">
+                  No runs yet. Click "Run Now" to execute this task.
+                </p>
+              )}
             </div>
           </div>
 
-          <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-6 space-y-3">
-            <div>
-              <span className="font-semibold">Description:</span>
-              <p className="text-gray-600 dark:text-gray-400 mt-1">{task.description}</p>
-            </div>
-            <div className="flex gap-6">
-              <div>
-                <span className="font-semibold">Target Site:</span> {task.targetSite}
-              </div>
-              {task.cronSchedule && (
+          {/* Task Info */}
+          <div className="lg:col-span-1">
+            <div className="rounded-lg bg-white border border-slate-200 shadow-sm p-6">
+              <h2 className="text-lg font-semibold text-slate-900 mb-4">Task Info</h2>
+              <div className="space-y-3">
                 <div>
-                  <span className="font-semibold">Schedule:</span> {task.cronSchedule}
+                  <p className="text-xs text-slate-600 mb-1">Description</p>
+                  <p className="text-sm text-slate-900">{task.description}</p>
                 </div>
-              )}
-              <div>
-                <span className="font-semibold">Status:</span>{" "}
-                <span
-                  className={`px-2 py-1 rounded text-sm ${
-                    task.isActive
-                      ? "bg-green-100 text-green-800"
-                      : "bg-gray-100 text-gray-800"
-                  }`}
-                >
-                  {task.isActive ? "Active" : "Inactive"}
-                </span>
+                <div>
+                  <p className="text-xs text-slate-600 mb-1">Target Site</p>
+                  <p className="text-sm text-slate-900 break-all">{task.targetSite}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-600 mb-1">Created</p>
+                  <p className="text-sm text-slate-900">
+                    {new Date(task.createdAt).toLocaleString()}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
         </div>
+      )}
 
-        <div>
-          <h2 className="text-2xl font-bold mb-4">Run History</h2>
-          {task.runs.length === 0 ? (
-            <div className="border rounded-lg p-6 text-center text-gray-500">
-              No runs yet. Click "Run Now" to execute this task.
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {task.runs.map((run) => (
-                <div key={run.id} className="border rounded-lg p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="flex items-center gap-3 flex-wrap">
+      {activeTab === "runs" && (
+        <div className="rounded-lg bg-white border border-slate-200 shadow-sm">
+          <div className="px-6 py-4 border-b border-slate-200">
+            <h2 className="text-lg font-semibold text-slate-900">Run History</h2>
+          </div>
+          <div className="divide-y divide-slate-200">
+            {task.runs.length === 0 ? (
+              <div className="px-6 py-8 text-center text-slate-500">
+                No runs yet. Click "Run Now" to execute this task.
+              </div>
+            ) : (
+              task.runs.map((run) => (
+                <div key={run.id} className="px-6 py-4 hover:bg-slate-50">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
                       <span
                         className={`px-3 py-1 rounded-full text-sm font-medium inline-flex items-center gap-1.5 ${
                           run.status === "success"
-                            ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                            ? "bg-green-100 text-green-800"
                             : run.status === "failed"
-                            ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                            : run.status === "running"
-                            ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
-                            : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
+                            ? "bg-red-100 text-red-800"
+                            : "bg-blue-100 text-blue-800"
                         }`}
                       >
                         {run.status === "success" && "✓"}
@@ -204,66 +437,132 @@ export default function TaskDetailPage({
                         {run.status === "running" && "⟳"}
                         {run.status.charAt(0).toUpperCase() + run.status.slice(1)}
                       </span>
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                      <span className="text-sm text-slate-600">
                         {new Date(run.startedAt).toLocaleString()}
                       </span>
-                      {run.finishedAt && (
-                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                          Duration: {Math.round(
-                            (new Date(run.finishedAt).getTime() -
-                              new Date(run.startedAt).getTime()) /
-                              1000
-                          )}s
-                        </span>
-                      )}
                     </div>
+                    {run.finishedAt && (
+                      <span className="text-sm text-slate-600">
+                        Duration:{" "}
+                        {Math.round(
+                          (new Date(run.finishedAt).getTime() -
+                            new Date(run.startedAt).getTime()) /
+                            1000
+                        )}
+                        s
+                      </span>
+                    )}
                   </div>
 
                   {run.errorMsg && (
-                    <div className="bg-red-50 border border-red-200 rounded p-3 mt-2">
-                      <p className="text-sm text-red-800 font-semibold">Error:</p>
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3 mt-2">
+                      <p className="text-sm font-semibold text-red-800">Error:</p>
                       <p className="text-sm text-red-800">{run.errorMsg}</p>
                     </div>
                   )}
 
-                  {run.outputJson && (
-                    <div className="mt-3">
-                      <h3 className="text-sm font-semibold mb-2">Result:</h3>
-                      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                        {run.outputJson.result && Array.isArray(run.outputJson.result) ? (
+                  {run.outputJson?.result && (
+                    <details className="mt-3">
+                      <summary className="cursor-pointer text-sm text-indigo-600 hover:text-indigo-700 font-medium">
+                        View Result ({Array.isArray(run.outputJson.result) ? run.outputJson.result.length : 1} items)
+                      </summary>
+                      <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 mt-2">
+                        {Array.isArray(run.outputJson.result) ? (
                           <ul className="space-y-2">
                             {run.outputJson.result.map((item: string, idx: number) => (
                               <li key={idx} className="flex items-start gap-2">
-                                <span className="text-blue-600 dark:text-blue-400 mt-1">•</span>
-                                <span className="text-gray-800 dark:text-gray-200">{item}</span>
+                                <span className="text-indigo-600 mt-1">•</span>
+                                <span className="text-slate-800 text-sm">{item}</span>
                               </li>
                             ))}
                           </ul>
                         ) : (
-                          <pre className="text-xs overflow-x-auto whitespace-pre-wrap text-gray-700 dark:text-gray-300">
-                            {JSON.stringify(run.outputJson, null, 2)}
-                          </pre>
+                          <p className="text-sm text-slate-800">{run.outputJson.result}</p>
                         )}
                       </div>
-                    </div>
+                    </details>
                   )}
 
                   {run.logs && (
                     <details className="mt-2">
-                      <summary className="cursor-pointer text-sm text-gray-600 hover:underline font-medium">
+                      <summary className="cursor-pointer text-sm text-slate-600 hover:text-slate-900 font-medium">
                         View Logs
                       </summary>
-                      <pre className="bg-gray-900 text-gray-100 p-3 rounded mt-2 text-xs overflow-x-auto">
+                      <pre className="bg-slate-900 text-slate-100 p-3 rounded-lg mt-2 text-xs overflow-x-auto">
                         {run.logs}
                       </pre>
                     </details>
                   )}
                 </div>
-              ))}
-            </div>
-          )}
+              ))
+            )}
+          </div>
         </div>
-      </div>
-    </div>
+      )}
+
+      {activeTab === "settings" && (
+        <div className="rounded-lg bg-white border border-slate-200 shadow-sm p-6 max-w-2xl">
+          <h2 className="text-lg font-semibold text-slate-900 mb-4">Task Settings</h2>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Task Name
+              </label>
+              <input
+                type="text"
+                value={editForm.name}
+                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Description
+              </label>
+              <textarea
+                value={editForm.description}
+                onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                rows={3}
+                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Target URL
+              </label>
+              <input
+                type="text"
+                value={editForm.targetSite}
+                onChange={(e) => setEditForm({ ...editForm, targetSite: e.target.value })}
+                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Cron Schedule (optional)
+              </label>
+              <input
+                type="text"
+                value={editForm.cronSchedule}
+                onChange={(e) => setEditForm({ ...editForm, cronSchedule: e.target.value })}
+                placeholder="e.g., 0 9 * * * (every day at 9 AM)"
+                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+              <p className="text-xs text-slate-500 mt-1">
+                Leave empty for manual execution only
+              </p>
+            </div>
+            <div className="pt-4">
+              <button
+                onClick={handleSaveSettings}
+                className="inline-flex items-center gap-2 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </main>
   );
 }
