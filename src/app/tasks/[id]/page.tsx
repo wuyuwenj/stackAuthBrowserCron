@@ -342,33 +342,32 @@ export default function TaskDetailPage({
                     </div>
                   )}
 
-                  {latestRun.outputJson && (
-                    <details className="mt-3">
-                      <summary className="cursor-pointer text-sm text-indigo-600 hover:text-indigo-700 font-medium">
-                        View Result {latestRun.outputJson.result && Array.isArray(latestRun.outputJson.result) && `(${latestRun.outputJson.result.length} items)`}
-                      </summary>
-                      <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 mt-2">
-                        {latestRun.outputJson.result ? (
-                          Array.isArray(latestRun.outputJson.result) ? (
-                            <ul className="space-y-2">
-                              {latestRun.outputJson.result.map((item: string, idx: number) => (
-                                <li key={idx} className="flex items-start gap-2">
-                                  <span className="text-indigo-600 mt-1">•</span>
-                                  <span className="text-slate-800 text-sm">{item}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          ) : (
-                            <p className="text-sm text-slate-800">{latestRun.outputJson.result}</p>
-                          )
-                        ) : (
-                          <pre className="text-xs text-slate-600 whitespace-pre-wrap">
-                            {JSON.stringify(latestRun.outputJson, null, 2)}
-                          </pre>
-                        )}
-                      </div>
-                    </details>
-                  )}
+                  {latestRun.outputJson && (() => {
+                    // Parse outputJson if it's a string
+                    const output = typeof latestRun.outputJson === 'string'
+                      ? JSON.parse(latestRun.outputJson)
+                      : latestRun.outputJson;
+                    const results = output?.result || [];
+
+                    if (!Array.isArray(results) || results.length === 0) return null;
+
+                    return (
+                      <details className="mt-3">
+                        <summary className="cursor-pointer text-sm text-indigo-600 hover:text-indigo-700 font-medium">
+                          View Result ({results.length} {results.length === 1 ? 'item' : 'items'})
+                        </summary>
+                        <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 mt-2">
+                          <ul className="space-y-2">
+                            {results.map((item: string, idx: number) => (
+                              <li key={idx} className="text-slate-800 text-sm">
+                                {item}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </details>
+                    );
+                  })()}
 
                   {latestRun.logs && (
                     <details className="mt-4">
@@ -467,33 +466,32 @@ export default function TaskDetailPage({
                     </div>
                   )}
 
-                  {run.outputJson && (
-                    <details className="mt-3">
-                      <summary className="cursor-pointer text-sm text-indigo-600 hover:text-indigo-700 font-medium">
-                        View Result {run.outputJson.result && Array.isArray(run.outputJson.result) && `(${run.outputJson.result.length} items)`}
-                      </summary>
-                      <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 mt-2">
-                        {run.outputJson.result ? (
-                          Array.isArray(run.outputJson.result) ? (
-                            <ul className="space-y-2">
-                              {run.outputJson.result.map((item: string, idx: number) => (
-                                <li key={idx} className="flex items-start gap-2">
-                                  <span className="text-indigo-600 mt-1">•</span>
-                                  <span className="text-slate-800 text-sm">{item}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          ) : (
-                            <p className="text-sm text-slate-800">{run.outputJson.result}</p>
-                          )
-                        ) : (
-                          <pre className="text-xs text-slate-600 whitespace-pre-wrap">
-                            {JSON.stringify(run.outputJson, null, 2)}
-                          </pre>
-                        )}
-                      </div>
-                    </details>
-                  )}
+                  {run.outputJson && (() => {
+                    // Parse outputJson if it's a string
+                    const output = typeof run.outputJson === 'string'
+                      ? JSON.parse(run.outputJson)
+                      : run.outputJson;
+                    const results = output?.result || [];
+
+                    if (!Array.isArray(results) || results.length === 0) return null;
+
+                    return (
+                      <details className="mt-3">
+                        <summary className="cursor-pointer text-sm text-indigo-600 hover:text-indigo-700 font-medium">
+                          View Result ({results.length} {results.length === 1 ? 'item' : 'items'})
+                        </summary>
+                        <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 mt-2">
+                          <ul className="space-y-2">
+                            {results.map((item: string, idx: number) => (
+                              <li key={idx} className="text-slate-800 text-sm">
+                                {item}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </details>
+                    );
+                  })()}
 
                   {run.logs && (
                     <details className="mt-2">
