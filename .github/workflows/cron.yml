@@ -1,0 +1,32 @@
+name: Run Scheduled Browser Tasks
+
+on:
+  schedule:
+    # Runs every 10 minutes (GitHub Actions uses UTC time)
+    - cron: "*/10 * * * *"
+
+  # Allow manual trigger from GitHub Actions tab
+  workflow_dispatch:
+
+jobs:
+  run-tasks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Call API to run due tasks
+        run: |
+          response=$(curl -s -w "\n%{http_code}" -X GET "${{ secrets.VERCEL_URL }}/api/run-due-tasks" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}")
+
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+
+          echo "HTTP Status: $http_code"
+          echo "Response: $body"
+
+          if [ "$http_code" -ne 200 ]; then
+            echo "Error: API call failed with status $http_code"
+            exit 1
+          fi
+
+          echo "✅ Successfully triggered task execution"

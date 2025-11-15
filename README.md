@@ -100,9 +100,44 @@ AI-powered browser automation platform built with Next.js and Browser Use Cloud.
 
 ## Scheduling
 
-Set up a cron job to hit the `/api/run-due-tasks` endpoint. Options:
+Set up automated task execution using GitHub Actions (recommended) or Vercel Cron.
 
-### Vercel Cron (Recommended for Vercel deployments)
+### GitHub Actions (Recommended - Free & Flexible)
+
+GitHub Actions is already configured in `.github/workflows/cron.yml` to run every 10 minutes.
+
+**Setup Steps:**
+
+1. **Deploy your app to Vercel** (or any platform)
+
+2. **Add GitHub Secrets** to your repository:
+   - Go to your GitHub repo → Settings → Secrets and variables → Actions
+   - Add two secrets:
+     - `VERCEL_URL`: Your deployed app URL (e.g., `https://browser-cron.vercel.app`)
+     - `CRON_SECRET`: Your CRON_SECRET from `.env` (same value)
+
+3. **Enable GitHub Actions**:
+   - The workflow is already in `.github/workflows/cron.yml`
+   - It will automatically run every 10 minutes
+   - You can also trigger it manually from the Actions tab
+
+4. **Customize schedule** (optional):
+   - Edit `.github/workflows/cron.yml`
+   - Change the cron expression:
+     - `*/10 * * * *` - Every 10 minutes (default)
+     - `*/5 * * * *` - Every 5 minutes
+     - `0 * * * *` - Every hour
+     - `0 9 * * *` - Daily at 9am UTC
+
+**Benefits:**
+- ✅ Free (2000 minutes/month)
+- ✅ Run as frequently as every 5 minutes
+- ✅ Unlimited workflows
+- ✅ Easy monitoring in Actions tab
+
+### Vercel Cron (Alternative)
+
+**Note**: Vercel Free tier only allows 2 cron jobs max and once per day execution.
 
 Add to `vercel.json`:
 ```json
@@ -110,18 +145,10 @@ Add to `vercel.json`:
   "crons": [
     {
       "path": "/api/run-due-tasks",
-      "schedule": "*/5 * * * *"
+      "schedule": "0 9 * * *"
     }
   ]
 }
-```
-
-### External Scheduler
-
-Use GitHub Actions, Render Cron Jobs, or any HTTP-based scheduler to POST to:
-```
-POST https://your-domain.com/api/run-due-tasks
-Authorization: Bearer YOUR_CRON_SECRET
 ```
 
 ## API Routes
@@ -132,8 +159,8 @@ Authorization: Bearer YOUR_CRON_SECRET
 - `PUT /api/tasks/[id]` - Update a task
 - `DELETE /api/tasks/[id]` - Delete a task
 - `POST /api/tasks/[id]/run` - Manually run a task
-- `POST /api/run-due-tasks` - Run all due scheduled tasks
-- `GET /api/run-due-tasks` - Check which tasks would run
+- `POST /api/run-due-tasks` - Run all due scheduled tasks (Vercel Cron)
+- `GET /api/run-due-tasks` - Run all due scheduled tasks (GitHub Actions)
 
 ## Example Cron Expressions
 
