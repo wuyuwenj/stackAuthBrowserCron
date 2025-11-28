@@ -249,22 +249,194 @@ export default function Index() {
         <section>
           <div className="flex items-center gap-2 mb-6">
             <Beaker className="h-5 w-5 text-slate-600" />
-            <h2 className="text-3xl font-semibold tracking-tight">Example automations</h2>
+            <h2 className="text-3xl font-semibold tracking-tight">Real-world use cases</h2>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {[
-              { title: "Flight Tracking", desc: '"Check the cheapest SFO → YVR flights every morning at 9AM."' },
-              { title: "Product Availability", desc: '"Refresh the PS5 page every 10 minutes and notify me if it\'s in stock."' },
-              { title: "Dashboard Scraping", desc: '"Open Shopify admin and extract today\'s revenue."' },
-              { title: "Real Estate Search", desc: '"Search Craigslist daily for apartments under $2500."' },
-              { title: "Appointment Slots", desc: '"Check DMV availability every 15 minutes."' },
-            ].map((example, idx) => (
-              <Card key={idx} className="p-5">
-                <h3 className="font-semibold mb-2">{example.title}</h3>
-                <p className="text-sm text-slate-600">{example.desc}</p>
-              </Card>
-            ))}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Flight Price Tracker */}
+            <Card className="overflow-hidden">
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 border-b">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="h-10 w-10 rounded-lg bg-blue-600 flex items-center justify-center text-white">
+                    ✈️
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">Flight Price Tracker</h3>
+                    <p className="text-xs text-slate-600">Travel & Booking</p>
+                  </div>
+                </div>
+              </div>
+              <CardContent className="p-4 space-y-3">
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-slate-700">Task Description:</p>
+                  <div className="rounded-md bg-slate-50 p-3 text-sm text-slate-700">
+                    "Check Google Flights for the cheapest SFO → YVR flights every morning at 9 AM"
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-slate-700">Schedule:</p>
+                  <Badge variant="outline" className="font-mono">0 9 * * *</Badge>
+                  <span className="text-xs text-slate-600 ml-2">(Daily at 9:00 AM)</span>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-slate-700">Example Output:</p>
+                  <div className="rounded-md bg-slate-900 p-3">
+                    <pre className="text-xs text-slate-100 overflow-x-auto">
+{`{
+  "cheapestFare": 182.50,
+  "airline": "WestJet",
+  "date": "2025-03-14",
+  "departure": "6:00 AM",
+  "arrival": "9:30 AM"
+}`}
+                    </pre>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Product Stock Monitor */}
+            <Card className="overflow-hidden">
+              <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-4 border-b">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="h-10 w-10 rounded-lg bg-green-600 flex items-center justify-center text-white">
+                    🛒
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">Product Stock Monitor</h3>
+                    <p className="text-xs text-slate-600">E-commerce & Shopping</p>
+                  </div>
+                </div>
+              </div>
+              <CardContent className="p-4 space-y-3">
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-slate-700">Task Description:</p>
+                  <div className="rounded-md bg-slate-50 p-3 text-sm text-slate-700">
+                    "Check if PlayStation 5 is in stock on Best Buy and notify me immediately"
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-slate-700">Schedule:</p>
+                  <Badge variant="outline" className="font-mono">*/10 * * * *</Badge>
+                  <span className="text-xs text-slate-600 ml-2">(Every 10 minutes)</span>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-slate-700">Example Output:</p>
+                  <div className="rounded-md bg-slate-900 p-3">
+                    <pre className="text-xs text-slate-100 overflow-x-auto">
+{`{
+  "product": "PlayStation 5",
+  "inStock": true,
+  "price": 499.99,
+  "url": "bestbuy.com/...",
+  "checkedAt": "2025-03-13T14:30:00Z"
+}`}
+                    </pre>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Competitor Price Monitor */}
+            <Card className="overflow-hidden">
+              <div className="bg-gradient-to-br from-purple-50 to-pink-50 p-4 border-b">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="h-10 w-10 rounded-lg bg-purple-600 flex items-center justify-center text-white">
+                    📊
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">Competitor Price Tracker</h3>
+                    <p className="text-xs text-slate-600">Business Intelligence</p>
+                  </div>
+                </div>
+              </div>
+              <CardContent className="p-4 space-y-3">
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-slate-700">Task Description:</p>
+                  <div className="rounded-md bg-slate-50 p-3 text-sm text-slate-700">
+                    "Track competitor pricing for 'wireless headphones' on Amazon every 6 hours"
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-slate-700">Schedule:</p>
+                  <Badge variant="outline" className="font-mono">0 */6 * * *</Badge>
+                  <span className="text-xs text-slate-600 ml-2">(Every 6 hours)</span>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-slate-700">Example Output:</p>
+                  <div className="rounded-md bg-slate-900 p-3">
+                    <pre className="text-xs text-slate-100 overflow-x-auto">
+{`{
+  "competitors": [
+    {"brand": "Sony", "price": 299.99},
+    {"brand": "Bose", "price": 349.00},
+    {"brand": "Apple", "price": 549.00}
+  ]
+}`}
+                    </pre>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Real Estate Alerts */}
+            <Card className="overflow-hidden">
+              <div className="bg-gradient-to-br from-orange-50 to-red-50 p-4 border-b">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="h-10 w-10 rounded-lg bg-orange-600 flex items-center justify-center text-white">
+                    🏠
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">Real Estate Alerts</h3>
+                    <p className="text-xs text-slate-600">Property Search</p>
+                  </div>
+                </div>
+              </div>
+              <CardContent className="p-4 space-y-3">
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-slate-700">Task Description:</p>
+                  <div className="rounded-md bg-slate-50 p-3 text-sm text-slate-700">
+                    "Search Craigslist SF for 2BR apartments under $2,500/month posted in last 24h"
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-slate-700">Schedule:</p>
+                  <Badge variant="outline" className="font-mono">0 8,20 * * *</Badge>
+                  <span className="text-xs text-slate-600 ml-2">(8 AM & 8 PM daily)</span>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-slate-700">Example Output:</p>
+                  <div className="rounded-md bg-slate-900 p-3">
+                    <pre className="text-xs text-slate-100 overflow-x-auto">
+{`{
+  "newListings": 3,
+  "apartments": [
+    {
+      "price": 2400,
+      "bedrooms": 2,
+      "location": "Mission District"
+    }
+  ]
+}`}
+                    </pre>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
+
+          <Card className="mt-6 bg-indigo-50 border-indigo-200 p-6">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+              <div>
+                <p className="font-semibold mb-1">Ready to automate your workflows?</p>
+                <p className="text-sm text-slate-600">Get started for free - no credit card required</p>
+              </div>
+              <Link href="/handler/sign-in">
+                <Button size="lg" className="gap-2">
+                  Start Automating <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
+          </Card>
         </section>
 
         {/* Preview Section */}

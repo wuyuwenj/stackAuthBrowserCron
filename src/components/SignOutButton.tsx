@@ -2,20 +2,24 @@
 
 import { Button } from "./ui/button";
 import { LogOut } from "lucide-react";
-import { handleSignOut } from "@/app/actions/auth";
+import { useUser } from "@stackframe/stack";
 
 export function SignOutButton() {
+  const user = useUser();
+
+  const handleSignOut = async () => {
+    await user?.signOut();
+  };
+
   return (
-    <form action={handleSignOut}>
-      <Button
-        type="submit"
-        variant="outline"
-        size="sm"
-        className="gap-2"
-      >
-        <LogOut className="h-4 w-4" />
-        Sign Out
-      </Button>
-    </form>
+    <Button
+      onClick={handleSignOut}
+      variant="outline"
+      size="sm"
+      className="gap-2"
+    >
+      <LogOut className="h-4 w-4" />
+      Sign Out
+    </Button>
   );
 }

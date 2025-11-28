@@ -6,6 +6,7 @@ import Link from "next/link";
 import { FilePlus2, BookOpenText, Sparkles, Save, Globe, FileText, X, AlertCircle } from "lucide-react";
 import CronSchedulePicker from "@/components/CronSchedulePicker";
 import { NotificationSettings, NotificationSettingsData } from "@/components/NotificationSettings";
+import { Navbar } from "@/components/Navbar";
 
 export default function NewTaskPage() {
   const router = useRouter();
@@ -72,28 +73,7 @@ export default function NewTaskPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-      {/* Header */}
-      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="text-xl font-semibold hover:opacity-80 transition">
-              BrowserCron
-            </Link>
-            <div className="flex items-center gap-3">
-              <Link href="/dashboard">
-                <button className="px-4 py-2 text-sm font-medium hover:bg-muted rounded-lg transition">
-                  Dashboard
-                </button>
-              </Link>
-              <Link href="/tasks">
-                <button className="px-4 py-2 text-sm font-medium hover:bg-muted rounded-lg transition">
-                  My Tasks
-                </button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Navbar />
 
       <main className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Page Header */}
@@ -153,7 +133,7 @@ export default function NewTaskPage() {
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     className="w-full border bg-background rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition"
-                    placeholder="e.g., Download Stripe Invoices"
+                    placeholder="e.g., Flight Price Tracker or Product Stock Monitor"
                   />
                   <p className="text-xs text-muted-foreground">
                     Give your task a clear, descriptive name
@@ -176,7 +156,7 @@ export default function NewTaskPage() {
                     }
                     rows={5}
                     className="w-full border bg-background rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition resize-none"
-                    placeholder="Describe what you want the browser to do in plain English&#10;&#10;Example: Log into Stripe dashboard, navigate to invoices, download all invoices from the last month as PDF files"
+                    placeholder="Describe what you want the browser to do in plain English&#10;&#10;Example: Search Google Flights for the cheapest flights from SFO to YVR, extract the lowest fare, airline, and departure date"
                   />
                   <p className="text-xs text-muted-foreground">
                     Explain your automation goal in detail. Be specific about the steps you want.
@@ -198,10 +178,10 @@ export default function NewTaskPage() {
                       setFormData({ ...formData, targetSite: e.target.value })
                     }
                     className="w-full border bg-background rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition"
-                    placeholder="https://google.com"
+                    placeholder="https://www.google.com/flights"
                   />
                   <p className="text-xs text-muted-foreground">
-                    💡 Tip: Use specific URLs for efficiency. For example, if tracking flights from SF to Vancouver, enter the URL with those cities already selected instead of the homepage.
+                    💡 Tip: Use specific URLs for efficiency. For example, if tracking flights, use https://www.google.com/flights or if checking product availability, use the exact product page URL.
                   </p>
                 </div>
 
@@ -301,21 +281,27 @@ export default function NewTaskPage() {
               <div className="p-5">
                 <div className="space-y-4 text-sm">
                   <div className="space-y-1">
-                    <p className="font-medium text-foreground">Price Monitor</p>
+                    <p className="font-medium text-foreground">Flight Price Tracker</p>
                     <p className="text-xs text-muted-foreground">
-                      Check product price on Amazon and save to spreadsheet
+                      Search Google Flights for cheapest SFO to YVR flights daily at 9 AM
                     </p>
                   </div>
                   <div className="space-y-1">
-                    <p className="font-medium text-foreground">Invoice Downloader</p>
+                    <p className="font-medium text-foreground">Product Stock Monitor</p>
                     <p className="text-xs text-muted-foreground">
-                      Log into billing portal and download latest invoices
+                      Check if PlayStation 5 is in stock on Best Buy every 10 minutes
                     </p>
                   </div>
                   <div className="space-y-1">
-                    <p className="font-medium text-foreground">News Scraper</p>
+                    <p className="font-medium text-foreground">Real Estate Alerts</p>
                     <p className="text-xs text-muted-foreground">
-                      Collect headlines from news site and extract key data
+                      Search Craigslist for 2BR apartments under $2,500 twice daily
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="font-medium text-foreground">Competitor Prices</p>
+                    <p className="text-xs text-muted-foreground">
+                      Track wireless headphones pricing on Amazon every 6 hours
                     </p>
                   </div>
                 </div>

@@ -131,3 +131,70 @@ export async function getTaskStatus(taskId: string): Promise<BrowserTaskResult> 
     };
   }
 }
+
+/**
+ * Stream a browser task with real-time updates
+ * @param taskDescription Natural language description of the task
+ * @param startUrl Optional starting URL for the browser
+ * @param notificationCriteria Optional AI-evaluated notification criteria
+ * @param onStep Callback for each step update
+ * @returns Final task result
+ */
+export async function streamBrowserTask(
+  taskDescription: string,
+  startUrl?: string,
+  notificationCriteria?: string,
+  onStep?: (step: any) => void
+): Promise<BrowserTaskResult> {
+  try {
+    // Build the task prompt with optional notification criteria
+    let fullTaskDescription = taskDescription;
+
+    if (notificationCriteria) {
+      fullTaskDescription += `\n\nIMPORTANT NOTIFICATION EVALUATION:
+After completing the task above, evaluate this notification condition:
+"${notificationCriteria}"
+
+Based on what you found during the task, determine if this condition is TRUE or FALSE.
+- Set shouldNotify to true if the condition is met
+- Set shouldNotify to false if the condition is not met
+- In notificationReason, briefly explain why (e.g., "$49 flight found for March 15" or "No flights under $50 found")`;
+    }
+
+    // Create the task using the correct SDK method with structured output
+    const task = await client.tasks.createTask({
+      task: fullTaskDescription,
+      startUrl: startUrl || null,
+      schema: notificationCriteria ? TaskOutputWithNotification : DefaultTaskOutput,
+    });
+
+    const logs: string[] = [];
+
+    // Stream the task steps
+    for await (const step of task.stream()) {
+      // Call the callback if provided
+      if (onStep) {
+        onStep(step);
+      }
+
+      // Collect logs - just stringify the whole step for now
+      logs.push(`Step: ${JSON.stringify(step)}`);
+    }
+
+    // Get the final result
+    const result = await task.complete();
+
+    return {
+      id: task.id || "",
+      status: "completed",
+      result: result.parsed,
+      logs,
+    };
+  } catch (error: any) {
+    return {
+      id: "",
+      status: "failed",
+      error: error?.message ?? "Unknown error occurred",
+    };
+  }
+}

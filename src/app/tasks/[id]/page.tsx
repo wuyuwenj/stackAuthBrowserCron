@@ -1,9 +1,10 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import CronSchedulePicker from "@/components/CronSchedulePicker";
+import { Navbar } from "@/components/Navbar";
 
 interface TaskRun {
   id: string;
@@ -38,6 +39,9 @@ export default function TaskDetailPage({
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
   const [activeTab, setActiveTab] = useState<"overview" | "runs" | "settings">("overview");
+  const [streamingLogs, setStreamingLogs] = useState<string[]>([]);
+  const [showStreamingLogs, setShowStreamingLogs] = useState(false);
+  const logsEndRef = useRef<HTMLDivElement>(null);
   const [editForm, setEditForm] = useState({
     name: "",
     targetSite: "",
@@ -67,10 +71,20 @@ export default function TaskDetailPage({
     fetchTask();
   }, [id]);
 
+  // Auto-scroll to bottom when new logs arrive
+  useEffect(() => {
+    if (logsEndRef.current) {
+      logsEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [streamingLogs]);
+
   const handleRunTask = async () => {
     setRunning(true);
+    setStreamingLogs([]);
+    setShowStreamingLogs(true);
+
     try {
-      const response = await fetch(`/api/tasks/${id}/run`, {
+      const response = await fetch(`/api/tasks/${id}/run-stream`, {
         method: "POST",
       });
 
@@ -78,9 +92,53 @@ export default function TaskDetailPage({
         throw new Error("Failed to run task");
       }
 
-      setTimeout(fetchTask, 1000);
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) {
+        throw new Error("No response body");
+      }
+
+      while (true) {
+        const { done, value } = await reader.read();
+
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+
+              if (data.type === 'start') {
+                setStreamingLogs(prev => [...prev, `🚀 ${data.message}`]);
+              } else if (data.type === 'step') {
+                if (data.step.thought) {
+                  setStreamingLogs(prev => [...prev, `💭 ${data.step.thought}`]);
+                }
+                if (data.step.action) {
+                  const actionStr = typeof data.step.action === 'string'
+                    ? data.step.action
+                    : JSON.stringify(data.step.action);
+                  setStreamingLogs(prev => [...prev, `⚡ ${actionStr}`]);
+                }
+              } else if (data.type === 'complete') {
+                setStreamingLogs(prev => [...prev, `✅ Task completed in ${(data.duration / 1000).toFixed(1)}s`]);
+                setTimeout(fetchTask, 1000);
+              } else if (data.type === 'error') {
+                setStreamingLogs(prev => [...prev, `❌ Error: ${data.error}`]);
+                setTimeout(fetchTask, 1000);
+              }
+            } catch (e) {
+              console.error('Failed to parse SSE message:', e);
+            }
+          }
+        }
+      }
     } catch (error) {
-      // Error handled silently
+      setStreamingLogs(prev => [...prev, `❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`]);
     } finally {
       setRunning(false);
     }
@@ -159,27 +217,35 @@ export default function TaskDetailPage({
 
   if (loading) {
     return (
-      <main className="mx-auto max-w-7xl px-4 sm:px-6 py-6">
-        <p>Loading task...</p>
-      </main>
+      <>
+        <Navbar />
+        <main className="mx-auto max-w-7xl px-4 sm:px-6 py-6">
+          <p>Loading task...</p>
+        </main>
+      </>
     );
   }
 
   if (!task) {
     return (
-      <main className="mx-auto max-w-7xl px-4 sm:px-6 py-6">
-        <p>Task not found</p>
-        <Link href="/dashboard" className="text-indigo-600 hover:underline">
-          ← Back to Dashboard
-        </Link>
-      </main>
+      <>
+        <Navbar />
+        <main className="mx-auto max-w-7xl px-4 sm:px-6 py-6">
+          <p>Task not found</p>
+          <Link href="/dashboard" className="text-indigo-600 hover:underline">
+            ← Back to Dashboard
+          </Link>
+        </main>
+      </>
     );
   }
 
   const latestRun = task.runs && task.runs.length > 0 ? task.runs[0] : null;
 
   return (
-    <main className="mx-auto max-w-7xl px-4 sm:px-6 py-6">
+    <>
+      <Navbar />
+      <main className="mx-auto max-w-7xl px-4 sm:px-6 py-6">
       {/* Breadcrumb */}
       <div className="mb-4">
         <Link href="/dashboard" className="text-sm text-slate-600 hover:text-indigo-600">
@@ -259,6 +325,44 @@ export default function TaskDetailPage({
           </div>
         </div>
       </div>
+
+      {/* Streaming Logs */}
+      {showStreamingLogs && (
+        <div className="mb-6">
+          <div className="rounded-lg bg-slate-900 border border-slate-700 shadow-lg overflow-hidden">
+            <div className="bg-slate-800 px-4 py-3 border-b border-slate-700 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-white">
+                  {running ? "🔴 Live Progress" : "📋 Task Log"}
+                </span>
+                {running && (
+                  <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse"></span>
+                )}
+              </div>
+              <button
+                onClick={() => setShowStreamingLogs(false)}
+                className="text-slate-400 hover:text-white transition text-sm"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-4 max-h-96 overflow-y-auto font-mono text-sm">
+              {streamingLogs.length === 0 ? (
+                <p className="text-slate-400">Waiting for updates...</p>
+              ) : (
+                <>
+                  {streamingLogs.map((log, index) => (
+                    <div key={index} className="text-slate-100 py-1">
+                      {log}
+                    </div>
+                  ))}
+                  <div ref={logsEndRef} />
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="border-b border-slate-200 mb-6">
@@ -571,5 +675,6 @@ export default function TaskDetailPage({
         </div>
       )}
     </main>
+    </>
   );
 }

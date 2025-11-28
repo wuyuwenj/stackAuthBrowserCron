@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { SignOutButton } from "@/components/SignOutButton";
+import { Navbar } from "@/components/Navbar";
 
 interface Task {
   id: string;
@@ -61,40 +61,25 @@ export default function DashboardPage() {
   }
 
   return (
-    <main className="mx-auto max-w-7xl px-4 sm:px-6 py-6">
-      {/* Header */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-4">
-        <div>
-          <h1 className="text-[22px] sm:text-2xl font-semibold tracking-tight text-slate-900">
-            Dashboard
-          </h1>
-          <p className="text-sm text-slate-600">
-            Your automation tasks at a glance.
-            {userData && (
-              <span className="ml-2 text-xs font-medium text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
-                {userData.plan}
-              </span>
-            )}
-          </p>
+    <>
+      <Navbar />
+      <main className="mx-auto max-w-7xl px-4 sm:px-6 py-6">
+        {/* Header */}
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-4">
+          <div>
+            <h1 className="text-[22px] sm:text-2xl font-semibold tracking-tight text-slate-900">
+              Dashboard
+            </h1>
+            <p className="text-sm text-slate-600">
+              Your automation tasks at a glance.
+              {userData && (
+                <span className="ml-2 text-xs font-medium text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
+                  {userData.plan}
+                </span>
+              )}
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          {userData && userData.plan === 'FREE' && (
-            <Link
-              href="/pricing"
-              className="inline-flex items-center gap-2 rounded-md bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-sm font-medium px-3.5 py-2.5 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-            >
-              ⚡ Upgrade
-            </Link>
-          )}
-          <SignOutButton />
-          <Link
-            href="/tasks/new"
-            className="inline-flex items-center gap-2 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-3.5 py-2.5 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-          >
-            + Create Task
-          </Link>
-        </div>
-      </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -226,6 +211,7 @@ export default function DashboardPage() {
           </p>
         </div>
       </div>
-    </main>
+      </main>
+    </>
   );
 }

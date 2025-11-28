@@ -4,8 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Check } from 'lucide-react';
-import { SignOutButton } from '@/components/SignOutButton';
-import Link from 'next/link';
+import { Navbar } from '@/components/Navbar';
 
 const plans = [
   {
@@ -88,24 +87,7 @@ export default function PricingPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <header className="border-b bg-white">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="text-xl font-semibold hover:opacity-80 transition">
-              BrowserCron
-            </Link>
-            <div className="flex items-center gap-3">
-              <Link href="/dashboard">
-                <button className="px-4 py-2 text-sm font-medium hover:bg-slate-100 rounded-lg transition">
-                  Dashboard
-                </button>
-              </Link>
-              <SignOutButton />
-            </div>
-          </div>
-        </div>
-      </header>
+      <Navbar />
 
       <div className="max-w-7xl mx-auto px-4 py-16">
         <div className="text-center mb-16">

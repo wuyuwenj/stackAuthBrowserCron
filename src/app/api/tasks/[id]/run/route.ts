@@ -60,7 +60,7 @@ export async function POST(
         task.description,
         true,
         task.targetSite,
-        notificationCriteria
+        notificationCriteria || undefined
       );
 
       const status = result.status === "completed" ? "success" : "failed";

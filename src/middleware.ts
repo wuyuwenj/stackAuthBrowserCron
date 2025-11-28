@@ -1,8 +1,10 @@
-import { auth } from "@/auth";
+import { stackServerApp } from "@/stack/server";
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
-export default auth((req) => {
-  const isLoggedIn = !!req.auth;
+export async function middleware(req: NextRequest) {
+  const user = await stackServerApp.getUser();
+  const isLoggedIn = !!user;
   const { pathname } = req.nextUrl;
 
   // Protected routes
@@ -13,8 +15,8 @@ export default auth((req) => {
 
   // Redirect to login if accessing protected route while not logged in
   if (isProtectedRoute && !isLoggedIn) {
-    const loginUrl = new URL("/login", req.url);
-    loginUrl.searchParams.set("callbackUrl", pathname);
+    const loginUrl = new URL("/handler/sign-in", req.url);
+    loginUrl.searchParams.set("after_auth_return_to", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
@@ -24,7 +26,7 @@ export default auth((req) => {
   }
 
   return NextResponse.next();
-});
+}
 
 export const config = {
   matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],

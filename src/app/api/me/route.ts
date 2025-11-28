@@ -1,24 +1,24 @@
-import { auth } from "@/auth";
+import { stackServerApp } from "@/stack/server";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
 
 export async function GET() {
-  const session = await auth();
+  const user = await stackServerApp.getUser();
 
-  if (!session?.user) {
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const user = await db.user.findUnique({
-    where: { id: session.user.id },
+  const dbUser = await db.user.findUnique({
+    where: { id: user.id },
     select: { plan: true },
   });
 
   return NextResponse.json({
-    userId: session.user.id,
-    email: session.user.email,
-    name: session.user.name,
-    image: session.user.image,
-    plan: user?.plan || 'FREE',
+    userId: user.id,
+    email: user.primaryEmail,
+    name: user.displayName,
+    image: user.profileImageUrl,
+    plan: dbUser?.plan || 'FREE',
   });
 }

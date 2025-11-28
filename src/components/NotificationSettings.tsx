@@ -76,7 +76,7 @@ export function NotificationSettings({ initialSettings, userEmail, onChange }: N
             className="rounded border-slate-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-500"
           />
           <span className="text-sm text-slate-700 dark:text-slate-300">
-            ✅ Notify on success
+            Notify on success
           </span>
         </label>
 
@@ -88,7 +88,7 @@ export function NotificationSettings({ initialSettings, userEmail, onChange }: N
             className="rounded border-slate-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-500"
           />
           <span className="text-sm text-slate-700 dark:text-slate-300">
-            ❌ Notify on failure (recommended)
+            Notify on failure (recommended)
           </span>
         </label>
       </div>
@@ -96,7 +96,7 @@ export function NotificationSettings({ initialSettings, userEmail, onChange }: N
       {/* AI-Powered Notification Criteria */}
       <div className="space-y-2">
         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-          🤖 Smart Notification Criteria
+          Smart Notification Criteria
           <span className="text-muted-foreground font-normal ml-1">(optional)</span>
         </label>
         <textarea
@@ -148,7 +148,7 @@ export function NotificationSettings({ initialSettings, userEmail, onChange }: N
             {settings.notifyOnSuccess && <li>Task completes successfully</li>}
             {settings.notifyOnFailure && <li>Task fails</li>}
             {settings.notificationCriteria && settings.notificationCriteria.trim() && (
-              <li>🤖 AI evaluates: "{settings.notificationCriteria}"</li>
+              <li>AI evaluates: "{settings.notificationCriteria}"</li>
             )}
           </ul>
         </div>
