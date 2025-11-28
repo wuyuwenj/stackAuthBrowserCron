@@ -8,6 +8,14 @@ import CronSchedulePicker from "@/components/CronSchedulePicker";
 import { NotificationSettings, NotificationSettingsData } from "@/components/NotificationSettings";
 import { Navbar } from "@/components/Navbar";
 
+interface FieldErrors {
+  name?: string;
+  description?: string;
+  targetSite?: string;
+  cronSchedule?: string;
+  notificationSettings?: string;
+}
+
 export default function NewTaskPage() {
   const router = useRouter();
   const [userId, setUserId] = useState<string | null>(null);
@@ -21,6 +29,7 @@ export default function NewTaskPage() {
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettingsData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
   useEffect(() => {
     // Fetch current user
@@ -43,6 +52,7 @@ export default function NewTaskPage() {
 
     setLoading(true);
     setError("");
+    setFieldErrors({});
 
     try {
       const response = await fetch("/api/tasks", {
@@ -61,12 +71,27 @@ export default function NewTaskPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to create task");
+        // Handle validation errors
+        if (data.details && Array.isArray(data.details)) {
+          const errors: FieldErrors = {};
+          data.details.forEach((detail: any) => {
+            const field = detail.path?.[0];
+            if (field) {
+              errors[field as keyof FieldErrors] = detail.message;
+            }
+          });
+          setFieldErrors(errors);
+          setError("Please fix the errors below");
+        } else {
+          setError(data.error || data.message || "Failed to create task");
+        }
+        setLoading(false);
+        return;
       }
 
       router.push(`/tasks/${data.task.id}`);
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || "Failed to create task");
       setLoading(false);
     }
   };
@@ -131,13 +156,27 @@ export default function NewTaskPage() {
                     type="text"
                     required
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full border bg-background rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition"
+                    onChange={(e) => {
+                      setFormData({ ...formData, name: e.target.value });
+                      if (fieldErrors.name) {
+                        setFieldErrors({ ...fieldErrors, name: undefined });
+                      }
+                    }}
+                    className={`w-full border bg-background rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition ${
+                      fieldErrors.name ? "border-red-500 focus:border-red-500 focus:ring-red-500/20" : ""
+                    }`}
                     placeholder="e.g., Flight Price Tracker or Product Stock Monitor"
                   />
-                  <p className="text-xs text-muted-foreground">
-                    Give your task a clear, descriptive name
-                  </p>
+                  {fieldErrors.name ? (
+                    <p className="text-xs text-red-600 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {fieldErrors.name}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Give your task a clear, descriptive name
+                    </p>
+                  )}
                 </div>
 
                 {/* Description */}
@@ -151,16 +190,28 @@ export default function NewTaskPage() {
                     id="taskDesc"
                     required
                     value={formData.description}
-                    onChange={(e) =>
-                      setFormData({ ...formData, description: e.target.value })
-                    }
+                    onChange={(e) => {
+                      setFormData({ ...formData, description: e.target.value });
+                      if (fieldErrors.description) {
+                        setFieldErrors({ ...fieldErrors, description: undefined });
+                      }
+                    }}
                     rows={5}
-                    className="w-full border bg-background rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition resize-none"
+                    className={`w-full border bg-background rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition resize-none ${
+                      fieldErrors.description ? "border-red-500 focus:border-red-500 focus:ring-red-500/20" : ""
+                    }`}
                     placeholder="Describe what you want the browser to do in plain English&#10;&#10;Example: Search Google Flights for the cheapest flights from SFO to YVR, extract the lowest fare, airline, and departure date"
                   />
-                  <p className="text-xs text-muted-foreground">
-                    Explain your automation goal in detail. Be specific about the steps you want.
-                  </p>
+                  {fieldErrors.description ? (
+                    <p className="text-xs text-red-600 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {fieldErrors.description}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Explain your automation goal in detail. Be specific about the steps you want.
+                    </p>
+                  )}
                 </div>
 
                 {/* Target URL */}
@@ -174,15 +225,27 @@ export default function NewTaskPage() {
                     id="taskUrl"
                     type="url"
                     value={formData.targetSite}
-                    onChange={(e) =>
-                      setFormData({ ...formData, targetSite: e.target.value })
-                    }
-                    className="w-full border bg-background rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition"
+                    onChange={(e) => {
+                      setFormData({ ...formData, targetSite: e.target.value });
+                      if (fieldErrors.targetSite) {
+                        setFieldErrors({ ...fieldErrors, targetSite: undefined });
+                      }
+                    }}
+                    className={`w-full border bg-background rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition ${
+                      fieldErrors.targetSite ? "border-red-500 focus:border-red-500 focus:ring-red-500/20" : ""
+                    }`}
                     placeholder="https://www.google.com/flights"
                   />
-                  <p className="text-xs text-muted-foreground">
-                    💡 Tip: Use specific URLs for efficiency. For example, if tracking flights, use https://www.google.com/flights or if checking product availability, use the exact product page URL.
-                  </p>
+                  {fieldErrors.targetSite ? (
+                    <p className="text-xs text-red-600 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {fieldErrors.targetSite}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      💡 Tip: Use specific URLs for efficiency. For example, if tracking flights, use https://www.google.com/flights or if checking product availability, use the exact product page URL.
+                    </p>
+                  )}
                 </div>
 
                 {/* Schedule Picker */}
@@ -192,18 +255,38 @@ export default function NewTaskPage() {
                   </label>
                   <CronSchedulePicker
                     value={formData.cronSchedule}
-                    onChange={(cronExpression) =>
-                      setFormData({ ...formData, cronSchedule: cronExpression })
-                    }
+                    onChange={(cronExpression) => {
+                      setFormData({ ...formData, cronSchedule: cronExpression });
+                      if (fieldErrors.cronSchedule) {
+                        setFieldErrors({ ...fieldErrors, cronSchedule: undefined });
+                      }
+                    }}
                   />
+                  {fieldErrors.cronSchedule && (
+                    <p className="text-xs text-red-600 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {fieldErrors.cronSchedule}
+                    </p>
+                  )}
                 </div>
 
                 {/* Notification Settings */}
                 <div className="space-y-2">
                   <NotificationSettings
                     userEmail={userEmail}
-                    onChange={setNotificationSettings}
+                    onChange={(settings) => {
+                      setNotificationSettings(settings);
+                      if (fieldErrors.notificationSettings) {
+                        setFieldErrors({ ...fieldErrors, notificationSettings: undefined });
+                      }
+                    }}
                   />
+                  {fieldErrors.notificationSettings && (
+                    <p className="text-xs text-red-600 flex items-center gap-1 mt-2">
+                      <AlertCircle className="h-3 w-3" />
+                      {fieldErrors.notificationSettings}
+                    </p>
+                  )}
                 </div>
 
                 {/* Actions */}

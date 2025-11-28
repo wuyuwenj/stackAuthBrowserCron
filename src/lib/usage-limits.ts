@@ -9,7 +9,7 @@ export async function checkTaskLimit(userId: string): Promise<{ allowed: boolean
   });
 
   if (!user) {
-    throw new Error('User not found');
+    throw new Error('User not found in database');
   }
 
   const planLimits = PLANS[user.plan];
@@ -42,7 +42,7 @@ export async function checkRunLimit(userId: string): Promise<{ allowed: boolean;
   });
 
   if (!user) {
-    throw new Error('User not found');
+    throw new Error('User not found in database');
   }
 
   const planLimits = PLANS[user.plan];
@@ -63,7 +63,7 @@ export async function getUserPlan(userId: string): Promise<Plan> {
   });
 
   if (!user) {
-    throw new Error('User not found');
+    throw new Error('User not found in database');
   }
 
   return user.plan;
