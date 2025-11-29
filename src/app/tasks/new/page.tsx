@@ -71,8 +71,12 @@ export default function NewTaskPage() {
       const data = await response.json();
 
       if (!response.ok) {
+        // Handle task limit error (403)
+        if (response.status === 403 && data.error === "Task limit reached") {
+          setError(`${data.message}\n\nYou can delete an existing task or upgrade your plan to create more tasks.`);
+        }
         // Handle validation errors
-        if (data.details && Array.isArray(data.details)) {
+        else if (data.details && Array.isArray(data.details)) {
           const errors: FieldErrors = {};
           data.details.forEach((detail: any) => {
             const field = detail.path?.[0];
@@ -118,17 +122,35 @@ export default function NewTaskPage() {
 
         {/* Error Alert */}
         {error && (
-          <div className="mb-6 bg-destructive/10 border border-destructive/30 rounded-lg p-4 flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-destructive">{error}</p>
+          <div className="mb-6 bg-destructive/10 border border-destructive/30 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-destructive whitespace-pre-line">{error}</p>
+                {error.includes("Task limit reached") && (
+                  <div className="mt-3 flex gap-2">
+                    <Link
+                      href="/tasks"
+                      className="px-3 py-1.5 bg-white border border-destructive/30 text-destructive text-xs font-medium rounded hover:bg-destructive/5 transition"
+                    >
+                      View My Tasks
+                    </Link>
+                    <Link
+                      href="/pricing"
+                      className="px-3 py-1.5 bg-destructive text-white text-xs font-medium rounded hover:bg-destructive/90 transition"
+                    >
+                      Upgrade Plan
+                    </Link>
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={() => setError("")}
+                className="text-destructive hover:text-destructive/80 transition"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
-            <button
-              onClick={() => setError("")}
-              className="text-destructive hover:text-destructive/80 transition"
-            >
-              <X className="h-4 w-4" />
-            </button>
           </div>
         )}
 

@@ -73,7 +73,7 @@ export async function POST(
         const notifSettings = task.notificationSettings;
         const notificationCriteria = notifSettings?.notificationCriteria;
 
-        streamingLogs.push("🚀 Starting task...");
+        streamingLogs.push("Starting task...");
 
         console.log('[Stream API] Starting browser task...');
 
@@ -108,19 +108,19 @@ export async function POST(
 
             // Add to streaming logs for storage
             if (stepData.thought) {
-              streamingLogs.push(`💭 ${stepData.thought}`);
+              streamingLogs.push(`Thought: ${stepData.thought}`);
             }
             if (stepData.action) {
               const actionStr = typeof stepData.action === 'string'
                 ? stepData.action
                 : JSON.stringify(stepData.action);
-              streamingLogs.push(`⚡ ${actionStr}`);
+              streamingLogs.push(`Action: ${actionStr}`);
             }
             if (stepData.output) {
-              streamingLogs.push(`📋 ${stepData.output}`);
+              streamingLogs.push(`Output: ${stepData.output}`);
             }
             if (stepData.raw) {
-              streamingLogs.push(`📝 ${stepData.raw}`);
+              streamingLogs.push(`Step: ${stepData.raw}`);
             }
 
             sendEvent({
@@ -136,7 +136,7 @@ export async function POST(
         const duration = new Date().getTime() - taskRun.startedAt.getTime();
 
         // Add completion log
-        streamingLogs.push(`✅ Task completed in ${(duration / 1000).toFixed(1)}s`);
+        streamingLogs.push(`Task completed in ${(duration / 1000).toFixed(1)}s`);
 
         console.log('[Stream API] Updating task run in database...');
 
@@ -221,7 +221,7 @@ export async function POST(
         const duration = new Date().getTime() - taskRun.startedAt.getTime();
 
         // Add error log
-        streamingLogs.push(`❌ Error: ${error?.message ?? "Unknown error"}`);
+        streamingLogs.push(`Error: ${error?.message ?? "Unknown error"}`);
 
         // Update task run with error and streaming logs
         const updatedTaskRun = await db.taskRun.update({

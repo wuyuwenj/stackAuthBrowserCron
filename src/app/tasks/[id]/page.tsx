@@ -16,6 +16,75 @@ interface TaskRun {
   logs: string | null;
 }
 
+// Helper function to format Browser Use actions for better readability
+function formatBrowserAction(actionStr: string): string {
+  try {
+    // Try to parse as JSON array
+    const actions = JSON.parse(actionStr);
+
+    if (Array.isArray(actions)) {
+      return actions.map(action => formatSingleAction(action)).join('\n');
+    } else {
+      return formatSingleAction(actionStr);
+    }
+  } catch {
+    // If parsing fails, try to format as single action
+    return formatSingleAction(actionStr);
+  }
+}
+
+function formatSingleAction(action: string | object): string {
+  try {
+    const actionObj = typeof action === 'string' ? JSON.parse(action) : action;
+
+    // Extract the action type and parameters
+    const actionType = Object.keys(actionObj)[0];
+    const params = actionObj[actionType];
+
+    switch (actionType) {
+      case 'navigate':
+        return `Navigate to: ${params.url}`;
+
+      case 'scroll':
+        return `Scroll ${params.down ? 'down' : 'up'} ${params.pages || 1} page(s)`;
+
+      case 'extract':
+        const query = params.query?.substring(0, 80) || 'data';
+        return `Extract: ${query}${params.query?.length > 80 ? '...' : ''}`;
+
+      case 'click':
+        return `Click: ${params.selector || params.text || 'element'}`;
+
+      case 'type':
+        return `Type into ${params.selector || 'field'}: "${params.text?.substring(0, 50)}${params.text?.length > 50 ? '...' : ''}"`;
+
+      case 'write_file':
+        return `Save file: ${params.file_name}`;
+
+      case 'read_file':
+        return `Read file: ${params.file_name}`;
+
+      case 'replace_file':
+        return `Update file: ${params.file_name}`;
+
+      case 'done':
+        return `Task completed successfully`;
+
+      case 'wait':
+        return `Wait ${params.seconds}s`;
+
+      default:
+        // For unknown actions, show a shorter version
+        const shortStr = JSON.stringify(actionObj).substring(0, 100);
+        return `${shortStr}${shortStr.length >= 100 ? '...' : ''}`;
+    }
+  } catch {
+    // If all parsing fails, return truncated original
+    const str = typeof action === 'string' ? action : JSON.stringify(action);
+    return `${str.substring(0, 100)}${str.length > 100 ? '...' : ''}`;
+  }
+}
+
 interface Task {
   id: string;
   name: string;
@@ -142,10 +211,13 @@ export default function TaskDetailPage({
                   setStreamingLogs(prev => [...prev, `💭 ${data.step.thought}`]);
                 }
                 if (data.step.action) {
+                  // Parse and format Browser Use actions
                   const actionStr = typeof data.step.action === 'string'
                     ? data.step.action
                     : JSON.stringify(data.step.action);
-                  setStreamingLogs(prev => [...prev, `⚡ ${actionStr}`]);
+
+                  const formattedAction = formatBrowserAction(actionStr);
+                  setStreamingLogs(prev => [...prev, formattedAction]);
                 }
                 if (data.step.output) {
                   setStreamingLogs(prev => [...prev, `📋 ${data.step.output}`]);
@@ -403,7 +475,7 @@ export default function TaskDetailPage({
             <div className="bg-slate-800 px-4 py-3 border-b border-slate-700 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-white">
-                  {running ? "🔴 Live Progress" : "📋 Task Log"}
+                  {running ? "Live Progress" : "📋 Task Log"}
                 </span>
                 {running && (
                   <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse"></span>
@@ -416,16 +488,27 @@ export default function TaskDetailPage({
                 ✕
               </button>
             </div>
-            <div className="p-4 max-h-96 overflow-y-auto font-mono text-sm">
+            <div className="p-4 max-h-96 overflow-y-auto font-mono text-sm space-y-2">
               {streamingLogs.length === 0 ? (
                 <p className="text-slate-400">Waiting for updates...</p>
               ) : (
                 <>
-                  {streamingLogs.map((log, index) => (
-                    <div key={index} className="text-slate-100 py-1">
-                      {log}
-                    </div>
-                  ))}
+                  {streamingLogs.map((log, index) => {
+                    // Determine log type based on text prefix
+                    let logClass = "text-slate-100";
+                    if (log.startsWith('Starting task')) logClass = "text-blue-300 font-semibold";
+                    else if (log.startsWith('Task completed')) logClass = "text-green-300 font-semibold";
+                    else if (log.startsWith('Error:')) logClass = "text-red-300 font-semibold";
+                    else if (log.startsWith('Thought:')) logClass = "text-purple-300 italic";
+                    else if (log.startsWith('Navigate') || log.startsWith('Extract') || log.startsWith('Scroll')) logClass = "text-cyan-200";
+                    else if (log.startsWith('Save file') || log.startsWith('Read file') || log.startsWith('Update file')) logClass = "text-yellow-200";
+
+                    return (
+                      <div key={index} className={`${logClass} py-1 leading-relaxed whitespace-pre-wrap break-words`}>
+                        {log}
+                      </div>
+                    );
+                  })}
                   <div ref={logsEndRef} />
                 </>
               )}
