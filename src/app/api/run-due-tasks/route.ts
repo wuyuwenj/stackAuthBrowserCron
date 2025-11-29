@@ -31,6 +31,9 @@ export async function POST(request: NextRequest) {
           lte: now,
         },
       },
+      include: {
+        notificationSettings: true,
+      },
     });
 
     // Process each due task
@@ -46,8 +49,21 @@ export async function POST(request: NextRequest) {
         });
 
         try {
+          // Get notification criteria if configured
+          const notificationCriteria = task.notificationSettings?.notificationCriteria;
+
           // Run the browser task
-          const result = await runBrowserTask(task.description, true, task.targetSite);
+          const result = await runBrowserTask(
+            task.description,
+            true,
+            task.targetSite,
+            notificationCriteria || undefined
+          );
+
+          // Extract notification criteria evaluation if present
+          const aiEvaluation = result.result as any;
+          const shouldNotify = aiEvaluation?.shouldNotify;
+          const notificationReason = aiEvaluation?.notificationReason;
 
           // Update the task run with results
           await db.taskRun.update({
@@ -58,6 +74,8 @@ export async function POST(request: NextRequest) {
               outputJson: result.result || null,
               errorMsg: result.error || null,
               logs: result.logs?.join("\n") || null,
+              shouldNotify: shouldNotify !== undefined ? shouldNotify : null,
+              notificationReason: notificationReason || null,
             },
           });
 
@@ -123,6 +141,9 @@ export async function GET(request: NextRequest) {
           lte: now,
         },
       },
+      include: {
+        notificationSettings: true,
+      },
     });
 
     // Process each due task
@@ -138,8 +159,21 @@ export async function GET(request: NextRequest) {
         });
 
         try {
+          // Get notification criteria if configured
+          const notificationCriteria = task.notificationSettings?.notificationCriteria;
+
           // Run the browser task
-          const result = await runBrowserTask(task.description, true, task.targetSite);
+          const result = await runBrowserTask(
+            task.description,
+            true,
+            task.targetSite,
+            notificationCriteria || undefined
+          );
+
+          // Extract notification criteria evaluation if present
+          const aiEvaluation = result.result as any;
+          const shouldNotify = aiEvaluation?.shouldNotify;
+          const notificationReason = aiEvaluation?.notificationReason;
 
           // Update the task run with results
           await db.taskRun.update({
@@ -150,6 +184,8 @@ export async function GET(request: NextRequest) {
               outputJson: result.result || null,
               errorMsg: result.error || null,
               logs: result.logs?.join("\n") || null,
+              shouldNotify: shouldNotify !== undefined ? shouldNotify : null,
+              notificationReason: notificationReason || null,
             },
           });
 

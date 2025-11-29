@@ -26,6 +26,7 @@ export async function GET(
           orderBy: { startedAt: "desc" },
           take: 10,
         },
+        notificationSettings: true,
       },
     });
 

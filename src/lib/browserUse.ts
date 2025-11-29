@@ -170,24 +170,68 @@ Based on what you found during the task, determine if this condition is TRUE or 
 
     const logs: string[] = [];
 
-    // Stream the task steps
-    for await (const step of task.stream()) {
-      // Call the callback if provided
-      if (onStep) {
-        onStep(step);
-      }
+    console.log('[Browser Use] Starting to stream task steps...');
 
-      // Collect logs - just stringify the whole step for now
-      logs.push(`Step: ${JSON.stringify(step)}`);
+    // Start streaming task steps (but don't wait for it to finish, since it may hang)
+    let streamFinished = false;
+    const streamTask = (async () => {
+      try {
+        for await (const step of task.stream()) {
+          // Call the callback if provided
+          if (onStep) {
+            onStep(step);
+          }
+
+          // Collect logs - just stringify the whole step for now
+          logs.push(`Step: ${JSON.stringify(step)}`);
+        }
+        streamFinished = true;
+        console.log('[Browser Use] Stream ended naturally');
+      } catch (err) {
+        console.error('[Browser Use] Stream error:', err);
+      }
+    })();
+
+    // Poll task status instead of waiting for stream to finish
+    let taskComplete = false;
+    let result: any = null;
+    let attempts = 0;
+    const maxAttempts = 120; // 10 minutes (5 seconds * 120)
+
+    while (!taskComplete && attempts < maxAttempts) {
+      await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
+      attempts++;
+
+      console.log(`[Browser Use] Polling task status (attempt ${attempts})...`);
+
+      try {
+        const taskStatus = await client.tasks.getTask({ task_id: task.id! });
+        console.log('[Browser Use] Task status:', taskStatus.status);
+
+        if (taskStatus.status === "finished") {
+          console.log('[Browser Use] Task finished!');
+          result = taskStatus;
+          taskComplete = true;
+          break;
+        }
+        // Note: Browser Use SDK may not have "stopped" or "failed" status
+        // Just keep polling if status is still "created" or "started"
+      } catch (err) {
+        console.error('[Browser Use] Error polling task:', err);
+        throw err;
+      }
     }
 
-    // Get the final result
-    const result = await task.complete();
+    if (!taskComplete) {
+      throw new Error('Task completion timeout after 10 minutes');
+    }
+
+    console.log('[Browser Use] Task completed successfully, result:', result);
 
     return {
       id: task.id || "",
       status: "completed",
-      result: result.parsed,
+      result: (result as any).parsed || (result as any).output,
       logs,
     };
   } catch (error: any) {

@@ -66,6 +66,11 @@ export async function POST(
       const status = result.status === "completed" ? "success" : "failed";
       const duration = new Date().getTime() - taskRun.startedAt.getTime();
 
+      // Extract notification criteria evaluation if present
+      const aiEvaluation = result.result as any;
+      const shouldNotify = aiEvaluation?.shouldNotify;
+      const notificationReason = aiEvaluation?.notificationReason;
+
       // Update the task run with results
       const updatedTaskRun = await db.taskRun.update({
         where: { id: taskRun.id },
@@ -75,6 +80,8 @@ export async function POST(
           outputJson: result.result || null,
           errorMsg: result.error || null,
           logs: result.logs?.join("\n") || null,
+          shouldNotify: shouldNotify !== undefined ? shouldNotify : null,
+          notificationReason: notificationReason || null,
         },
       });
 

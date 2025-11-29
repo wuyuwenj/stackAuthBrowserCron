@@ -48,6 +48,14 @@ export default function TaskDetailPage({
     cronSchedule: "",
     description: "",
   });
+  const [notificationForm, setNotificationForm] = useState({
+    enabled: false,
+    notifyOnSuccess: false,
+    notifyOnFailure: true,
+    email: "",
+    frequency: "immediate" as "immediate" | "daily" | "weekly",
+    notificationCriteria: "",
+  });
 
   const fetchTask = () => {
     fetch(`/api/tasks/${id}`)
@@ -60,6 +68,17 @@ export default function TaskDetailPage({
           cronSchedule: data.task.cronSchedule || "",
           description: data.task.description,
         });
+        // Set notification form data
+        if (data.task.notificationSettings) {
+          setNotificationForm({
+            enabled: true,
+            notifyOnSuccess: data.task.notificationSettings.notifyOnSuccess,
+            notifyOnFailure: data.task.notificationSettings.notifyOnFailure,
+            email: data.task.notificationSettings.email,
+            frequency: data.task.notificationSettings.frequency,
+            notificationCriteria: data.task.notificationSettings.notificationCriteria || "",
+          });
+        }
         setLoading(false);
       })
       .catch(() => {
@@ -102,7 +121,11 @@ export default function TaskDetailPage({
       while (true) {
         const { done, value } = await reader.read();
 
-        if (done) break;
+        if (done) {
+          // Stream closed
+          console.log('Stream closed');
+          break;
+        }
 
         const chunk = decoder.decode(value);
         const lines = chunk.split('\n');
@@ -124,6 +147,12 @@ export default function TaskDetailPage({
                     : JSON.stringify(data.step.action);
                   setStreamingLogs(prev => [...prev, `⚡ ${actionStr}`]);
                 }
+                if (data.step.output) {
+                  setStreamingLogs(prev => [...prev, `📋 ${data.step.output}`]);
+                }
+                if (data.step.raw) {
+                  setStreamingLogs(prev => [...prev, `📝 ${data.step.raw}`]);
+                }
               } else if (data.type === 'complete') {
                 setStreamingLogs(prev => [...prev, `✅ Task completed in ${(data.duration / 1000).toFixed(1)}s`]);
                 setTimeout(fetchTask, 1000);
@@ -137,9 +166,15 @@ export default function TaskDetailPage({
           }
         }
       }
+
+      // Stream finished, always refresh the task
+      console.log('Refreshing task after stream completion');
+      await fetchTask();
     } catch (error) {
+      console.error('Stream error:', error);
       setStreamingLogs(prev => [...prev, `❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`]);
     } finally {
+      // Always set running to false when stream ends
       setRunning(false);
     }
   };
@@ -202,6 +237,41 @@ export default function TaskDetailPage({
       }
     } catch (error) {
       // Error handled silently
+    }
+  };
+
+  const handleSaveNotificationSettings = async () => {
+    try {
+      if (!notificationForm.enabled) {
+        // Delete notification settings
+        await fetch(`/api/tasks/${id}/notifications`, {
+          method: "DELETE",
+        });
+        fetchTask();
+        return;
+      }
+
+      // Update or create notification settings
+      const response = await fetch(`/api/tasks/${id}/notifications`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          notifyOnSuccess: notificationForm.notifyOnSuccess,
+          notifyOnFailure: notificationForm.notifyOnFailure,
+          email: notificationForm.email,
+          frequency: notificationForm.frequency,
+          notificationCriteria: notificationForm.notificationCriteria || undefined,
+          customRules: [],
+        }),
+      });
+
+      if (response.ok) {
+        fetchTask();
+      }
+    } catch (error) {
+      console.error("Failed to save notification settings:", error);
     }
   };
 
@@ -616,60 +686,171 @@ export default function TaskDetailPage({
       )}
 
       {activeTab === "settings" && (
-        <div className="rounded-lg bg-white border border-slate-200 shadow-sm p-6 max-w-2xl">
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">Task Settings</h2>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Task Name
-              </label>
-              <input
-                type="text"
-                value={editForm.name}
-                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
+        <div className="space-y-6">
+          {/* Task Settings */}
+          <div className="rounded-lg bg-white border border-slate-200 shadow-sm p-6">
+            <h2 className="text-lg font-semibold text-slate-900 mb-4">Task Settings</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Task Name
+                </label>
+                <input
+                  type="text"
+                  value={editForm.name}
+                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Description
+                </label>
+                <textarea
+                  value={editForm.description}
+                  onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Target URL
+                </label>
+                <input
+                  type="text"
+                  value={editForm.targetSite}
+                  onChange={(e) => setEditForm({ ...editForm, targetSite: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-3">
+                  Schedule <span className="text-slate-500 font-normal">(optional)</span>
+                </label>
+                <CronSchedulePicker
+                  value={editForm.cronSchedule}
+                  onChange={(cronExpression) =>
+                    setEditForm({ ...editForm, cronSchedule: cronExpression })
+                  }
+                />
+              </div>
+              <div className="pt-4">
+                <button
+                  onClick={handleSaveSettings}
+                  className="inline-flex items-center gap-2 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                >
+                  Save Changes
+                </button>
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Description
-              </label>
-              <textarea
-                value={editForm.description}
-                onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                rows={3}
-                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Target URL
-              </label>
-              <input
-                type="text"
-                value={editForm.targetSite}
-                onChange={(e) => setEditForm({ ...editForm, targetSite: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-3">
-                Schedule <span className="text-slate-500 font-normal">(optional)</span>
-              </label>
-              <CronSchedulePicker
-                value={editForm.cronSchedule}
-                onChange={(cronExpression) =>
-                  setEditForm({ ...editForm, cronSchedule: cronExpression })
-                }
-              />
-            </div>
-            <div className="pt-4">
-              <button
-                onClick={handleSaveSettings}
-                className="inline-flex items-center gap-2 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-              >
-                Save Changes
-              </button>
+          </div>
+
+          {/* Notification Settings */}
+          <div className="rounded-lg bg-white border border-slate-200 shadow-sm p-6">
+            <h2 className="text-lg font-semibold text-slate-900 mb-4">Notification Settings</h2>
+            <div className="space-y-4">
+              {/* Enable notifications toggle */}
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="enableNotifications"
+                  checked={notificationForm.enabled}
+                  onChange={(e) => setNotificationForm({ ...notificationForm, enabled: e.target.checked })}
+                  className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-slate-300 rounded"
+                />
+                <label htmlFor="enableNotifications" className="ml-2 block text-sm font-medium text-slate-700">
+                  Enable email notifications
+                </label>
+              </div>
+
+              {notificationForm.enabled && (
+                <>
+                  {/* Email */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Email Address
+                    </label>
+                    <input
+                      type="email"
+                      value={notificationForm.email}
+                      onChange={(e) => setNotificationForm({ ...notificationForm, email: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      placeholder="your@email.com"
+                    />
+                  </div>
+
+                  {/* Frequency */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Notification Frequency
+                    </label>
+                    <select
+                      value={notificationForm.frequency}
+                      onChange={(e) => setNotificationForm({ ...notificationForm, frequency: e.target.value as any })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <option value="immediate">Immediate</option>
+                      <option value="daily">Daily Digest</option>
+                      <option value="weekly">Weekly Summary</option>
+                    </select>
+                  </div>
+
+                  {/* Notify on success/failure */}
+                  <div className="space-y-2">
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        id="notifySuccess"
+                        checked={notificationForm.notifyOnSuccess}
+                        onChange={(e) => setNotificationForm({ ...notificationForm, notifyOnSuccess: e.target.checked })}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-slate-300 rounded"
+                      />
+                      <label htmlFor="notifySuccess" className="ml-2 block text-sm text-slate-700">
+                        Notify on successful runs
+                      </label>
+                    </div>
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        id="notifyFailure"
+                        checked={notificationForm.notifyOnFailure}
+                        onChange={(e) => setNotificationForm({ ...notificationForm, notifyOnFailure: e.target.checked })}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-slate-300 rounded"
+                      />
+                      <label htmlFor="notifyFailure" className="ml-2 block text-sm text-slate-700">
+                        Notify on failed runs
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Smart notification criteria */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Smart Notification Criteria <span className="text-slate-500 font-normal">(optional)</span>
+                    </label>
+                    <textarea
+                      value={notificationForm.notificationCriteria}
+                      onChange={(e) => setNotificationForm({ ...notificationForm, notificationCriteria: e.target.value })}
+                      rows={3}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      placeholder="e.g., Notify me if flights are under $50"
+                    />
+                    <p className="mt-1 text-xs text-slate-500">
+                      AI will evaluate this condition and only send notifications when it's met
+                    </p>
+                  </div>
+                </>
+              )}
+
+              <div className="pt-4">
+                <button
+                  onClick={handleSaveNotificationSettings}
+                  className="inline-flex items-center gap-2 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                >
+                  Save Notification Settings
+                </button>
+              </div>
             </div>
           </div>
         </div>
