@@ -1,6 +1,6 @@
 "use client";
 
-import { Sparkles, ArrowRight, PlayCircle, ChevronDown, Bot, Terminal, ListChecks, Braces, AlertTriangle, Timer, ShoppingBag, LayoutDashboard, Search, ClipboardCopy, CalendarClock, Rocket, Settings, Brain, Globe, AlarmClock, Receipt, Lightbulb, Beaker, Monitor, History, FilePlus, Check, Plus, Eye } from "lucide-react";
+import { Sparkles, ArrowRight, PlayCircle, ChevronDown, Bot, Terminal, ListChecks, Braces, AlertTriangle, Timer, ShoppingBag, LayoutDashboard, Search, ClipboardCopy, CalendarClock, Rocket, Settings, Brain, Globe, AlarmClock, Receipt, Lightbulb, Beaker, Monitor, History, FilePlus, Check, Plus, Eye, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -207,6 +207,7 @@ export default function Index() {
               { icon: Brain, title: "Natural Language Tasks", desc: "Write what you want — the AI understands and acts." },
               { icon: Globe, title: "Real Browser Automation", desc: "Powered by Browser Use Cloud (Chromium + AI navigation)." },
               { icon: AlarmClock, title: "Cron Scheduling", desc: "Run tasks every minute, hour, day, or custom intervals." },
+              { icon: Mail, title: "Email Notifications", desc: "Get notified when tasks complete, fail, or meet custom AI-evaluated criteria." },
               { icon: Receipt, title: "Full Run History", desc: "Status, logs, duration, clean results." },
             ].map((feature, idx) => (
               <Card key={idx} className="p-6">
